@@ -1,0 +1,24 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel DensityFunction
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+// feed user parameters in here to manipulate generated noise!
+
+StructuredBuffer<float3> offsets;
+float noiseScale;
+float noiseWeight;
+float floorLevel;
+float4 shaderParams;
+
+
+RWTexture2D<float4> Result;
+
+[numthreads(8,8,1)]
+void DensityFunction (uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+
+    points[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+}
