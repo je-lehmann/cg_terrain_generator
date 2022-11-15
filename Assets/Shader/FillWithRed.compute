@@ -1,0 +1,18 @@
+// example compute shader from https://docs.unity3d.com/Manual/class-ComputeShader.html
+
+#pragma kernel FillWithRed
+
+RWTexture2D<float4> tex;
+float width;
+float height;
+
+[numthreads(8,8,1)]
+void FillWithRed (uint3 id : SV_DispatchThreadID)
+{
+    // fill with red
+    // res[id.xy] = float4(1,0,0,1);
+
+    //fill according to pixel pos
+    tex[id.xy] = float4(id.x / width, id.y / height, 0.0, 0.0);
+
+}
