@@ -40,7 +40,7 @@ void MarchingCubes (int3 id : SV_DispatchThreadID)
         vertices[id.x + 1 + id.y * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
         vertices[id.x + id.y * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
         vertices[id.x + (id.y + 1) * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis],
-        vertices[id.x + 1 + (id.y + 1) * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + 1 + (id.y + 1) * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis],
         vertices[id.x + 1 + (id.y + 1) * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
         vertices[id.x + (id.y + 1) * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis]
     };
