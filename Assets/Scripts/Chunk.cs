@@ -8,18 +8,26 @@ using UnityEngine;
 public class Chunk : MonoBehaviour {
     public Vector3Int coords;
     public Material material;
+    public MeshFilter meshFilter;
+    public MeshRenderer meshRenderer;
+    public void InitializeChunk(Material mat, Vector3Int coords, Mesh mesh){
 
+       if (meshFilter == null) {
+            meshFilter = gameObject.AddComponent<MeshFilter> ();
+        }
 
-    void Start() {
-        MeshFilter m_filter = gameObject.AddComponent<MeshFilter>();
-        MeshRenderer m_renderer = gameObject.AddComponent<MeshRenderer>();
-        m_renderer.material = material;
-        Mesh m = new Mesh();
-        m.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        m_filter.sharedMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+        if (meshRenderer == null) {
+            meshRenderer = gameObject.AddComponent<MeshRenderer> ();
+        }
+        if (mesh == null) {
+            mesh = new Mesh ();
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        }
+        meshRenderer.material = mat;        
+        meshFilter.sharedMesh = mesh;
+        // m_filter.sharedMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
     }
-
-    void Update() {
-        
+    public void UpdateMesh(Mesh mesh) {
+        meshFilter.sharedMesh = mesh;
     }
 }

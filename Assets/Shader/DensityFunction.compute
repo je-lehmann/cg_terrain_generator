@@ -1,24 +1,30 @@
-// Each #kernel tells which function to compile; you can have many kernels
+// map x,y,z coord to a density value n between +1 and -1
+// feed user parameters in here to manipulate generated perlin noise!
+// public virtual ComputeBuffer Generate (ComputeBuffer pointBuffer, int vertsPerAxis, ... pos, scale, more stuff?) {
+
 #pragma kernel DensityFunction
+#include "NoiseLibrary.compute"
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+static const int numThreads = 8; // overwrite this?
+RWStructuredBuffer<float4> verts;
+int vertsPerAxis;
+bool noiseEnabled;
 
-// feed user parameters in here to manipulate generated noise!
+[numthreads(numThreads,numThreads,numThreads)]
+void DensityFunction (int3 id : SV_DispatchThreadID){
+    
+    if (id.x >= vertsPerAxis || id.y >= vertsPerAxis || id.z >= vertsPerAxis) {
+        return;
+    }
+    float3 pos = id - 0.5; //scaling needed later
+    float d = 0;
+    if (noiseEnabled){
+        d = snoise(pos);
 
-StructuredBuffer<float3> offsets;
-float noiseScale;
-float noiseWeight;
-float floorLevel;
-float4 shaderParams;
+    } else {
+        d = (pos);
+    }
 
-
-RWTexture2D<float4> Result;
-
-[numthreads(8,8,1)]
-void DensityFunction (uint3 id : SV_DispatchThreadID)
-{
-    // TODO: insert actual code here!
-
-    points[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+    int index = id.x + id.y * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis;
+    verts[index] = float4(pos, d);
 }

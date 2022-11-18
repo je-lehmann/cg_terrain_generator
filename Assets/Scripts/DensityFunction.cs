@@ -6,18 +6,28 @@ using UnityEngine;
 
 public class DensityFunction : MonoBehaviour
 {
-    [Header ("User parameters")]
-    public int generator_seed;
-    public float noiseScale = 1;
-    public float noiseWeight = 1;
-    public float floorLevel = 1;
-
-    public Vector4 shaderParams;
+    const int threadGroupSize = 8;
     public ComputeShader densityFunction;
+    public bool noiseEnabled = true; // does not update the mesh yet
+
     
-    /*
-     public virtual ComputeBuffer Generate () {
-        // returns data from the gpu that we need for mesh generation
+    // returns noised pointset from the gpu that we need for mesh generation, it makes sense
+    // to have different versions of this function later...
+    // densityFunction.Generate (vertBuffer, pointsPerAxis, scale, drawArea, center);           
+     public ComputeBuffer Generate (ComputeBuffer vertBuffer, int vertsPerAxis) {
+        int num_points = vertsPerAxis * vertsPerAxis * vertsPerAxis;
+        // int numThreadsPerAxis = Mathf.CeilToInt (vertsPerAxis / (float) threadGroupSize);
+
+        // fill up the point buffer in compute shader now
+        // set parameters, add more params later
+        densityFunction.SetBuffer(0, "verts", vertBuffer);
+        densityFunction.SetInt("vertsPerAxis", vertsPerAxis);
+        densityFunction.SetBool("noiseEnabled", noiseEnabled); 
+
+        densityFunction.Dispatch(0, 8, 8, 8); // is that correct?
+
+        return vertBuffer;
     }
-    */
+    
+    
 }

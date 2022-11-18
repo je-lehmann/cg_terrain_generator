@@ -1,14 +1,84 @@
-// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+﻿// http://paulbourke.net/geometry/polygonise/
+// https://docs.unity3d.com/Manual/class-ComputeShader.html
+// HLSL Help: https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl?redirectedfrom=MSDN
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-RWTexture2D<float4> Result;
+#pragma kernel MarchingCubes
+#include "LUT.compute"
 
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
-{
-    // TODO: insert actual code here!
+static const int numThreads = 6; // is this a good choice?
 
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+struct Triangle {
+    float3 vert_a;
+    float3 vert_b;
+    float3 vert_c;
+};
+
+AppendStructuredBuffer<Triangle> triangles;
+RWStructuredBuffer<float4> vertices;
+
+int vertsPerAxis;
+float isoLevel;
+
+// https://forum.unity.com/threads/not-set-to-an-instance-of-an-object.759701/
+float3 interpolateVerts(float4 vert_a, float4 vert_b) {
+    float t = (isoLevel - vert_a.w) / (vert_b.w - vert_a.w);
+    return vert_a.xyz + t * (vert_b.xyz - vert_a.xyz);
+}
+
+[numthreads(numThreads,numThreads,numThreads)]
+void MarchingCubes (int3 id : SV_DispatchThreadID)
+{   
+    // stop 1 before because voxel includes adjecent points
+    if (id.x >= vertsPerAxis - 1 || id.y >= vertsPerAxis - 1 || id.z >= vertsPerAxis - 1) {
+        return;
+    }
+
+    //we passed the coords and need to get the according index now... debug this
+    float4 cubeCorners[8] = {
+        vertices[id.x + id.y * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + 1 + id.y * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + 1 + id.y * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + id.y * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + (id.y + 1) * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + 1 + (id.y + 1) * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + 1 + (id.y + 1) * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis],
+        vertices[id.x + (id.y + 1) * vertsPerAxis + (id.z + 1) * vertsPerAxis * vertsPerAxis]
+    };
+
+    // calculate index for one of 256 possible cube combinations, 0 means cube is entirely inside
+    // the surface, 255 means entirely outside. This determines which edges are cut by the isolevel
+    // this may be more efficient with another LUT structure, also in the interpolation part....
+    int cubeIndex = 0;
+    if (cubeCorners[0].w < isoLevel) cubeIndex |= 1;
+    if (cubeCorners[1].w < isoLevel) cubeIndex |= 2;
+    if (cubeCorners[2].w < isoLevel) cubeIndex |= 4;
+    if (cubeCorners[3].w < isoLevel) cubeIndex |= 8;
+    if (cubeCorners[4].w < isoLevel) cubeIndex |= 16;
+    if (cubeCorners[5].w < isoLevel) cubeIndex |= 32;
+    if (cubeCorners[6].w < isoLevel) cubeIndex |= 64;
+    if (cubeCorners[7].w < isoLevel) cubeIndex |= 128;
+
+    // Create triangles for current cube configuration
+    for (int i = 0; triTable[cubeIndex][i] != -1; i +=3) {
+        
+        // get corner point indices for each edge
+        // those are needed to form the triangle
+
+        int a0 = cornerIndexFromEdge1[triTable[cubeIndex][i]];
+        int b0 = cornerIndexFromEdge2[triTable[cubeIndex][i]];
+
+        int a1 = cornerIndexFromEdge1[triTable[cubeIndex][i+1]];
+        int b1 = cornerIndexFromEdge2[triTable[cubeIndex][i+1]];
+
+        int a2 = cornerIndexFromEdge1[triTable[cubeIndex][i+2]];
+        int b2 = cornerIndexFromEdge2[triTable[cubeIndex][i+2]];
+
+        Triangle tri;
+        tri.vert_a = interpolateVerts(cubeCorners[a0], cubeCorners[b0]);
+        tri.vert_b = interpolateVerts(cubeCorners[a1], cubeCorners[b1]);
+        tri.vert_c = interpolateVerts(cubeCorners[a2], cubeCorners[b2]);
+        triangles.Append(tri);
+    }
+
+
 }
