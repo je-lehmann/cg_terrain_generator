@@ -4,6 +4,7 @@
 
 #pragma kernel DensityFunction
 #include "NoiseLibrary.compute"
+#include "perlin.compute"
 
 static const int numThreads = 8; // overwrite this?
 RWStructuredBuffer<float4> verts;
@@ -17,12 +18,15 @@ void DensityFunction (int3 id : SV_DispatchThreadID){
         return;
     }
     float3 pos = id - 0.5; //scaling needed later
+    float2 pos_2 = float2(pos.x, pos.z);
     float d = 0;
     if (noiseEnabled){
-        d = snoise(pos);
+        // We use horizontal Landscape and add different Frequencies of Perlin Noise
+        d = pos.y + 2 * ClassicNoise(0.3*pos_2); //+ 1 * ClassicNoise(0.4*pos_2) ...
 
     } else {
-        d = (pos);
+        // For a horizontal Landscape
+        d = pos.y;
     }
 
     int index = id.x + id.y * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis;

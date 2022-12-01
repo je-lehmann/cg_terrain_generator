@@ -14,10 +14,11 @@ public class ChunkGenerator : MonoBehaviour {
 
     [Header ("Voxel Params")]
     
-    [Range (-1f, 1f)]
+    // Changed Ranges for better visability 
+    [Range (-1f, 10f)]
     public float isoLevel = 0.0f; 
 
-     [Range (2, 20)]
+     [Range (2, 100)]
     public int vertsPerAxis = 2; // this will be our resolution or LOD later on
     public int scale = 1; // we need that later on
 
