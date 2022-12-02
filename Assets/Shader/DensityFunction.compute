@@ -6,23 +6,27 @@
 #include "NoiseLibrary.compute"
 #include "perlin.compute"
 
-static const int numThreads = 8; // overwrite this?
+//static const int numThreads = 64; // overwrite this? 
+//for GTX 1650 the maxThreads is 12800, but Unity only allows 1024 :(
 RWStructuredBuffer<float4> verts;
 int vertsPerAxis;
+float scale;
+float resolution;
 bool noiseEnabled;
 
-[numthreads(numThreads,numThreads,numThreads)]
+[numthreads(16,8,8)]
 void DensityFunction (int3 id : SV_DispatchThreadID){
     
     if (id.x >= vertsPerAxis || id.y >= vertsPerAxis || id.z >= vertsPerAxis) {
         return;
     }
-    float3 pos = id - 0.5; //scaling needed later
-    float2 pos_2 = float2(pos.x, pos.z);
+    scale = scale / (vertsPerAxis);
+    float3 pos = id * scale - scale/2; 
+    float2 pos_xz = float2(pos.x, pos.z);
     float d = 0;
     if (noiseEnabled){
         // We use horizontal Landscape and add different Frequencies of Perlin Noise
-        d = pos.y + 2 * ClassicNoise(0.3*pos_2); //+ 1 * ClassicNoise(0.4*pos_2) ...
+        d = pos.y + 2 * snoise(0.3*pos); //+ 1 * ClassicNoise(0.4*pos_2) ...
 
     } else {
         // For a horizontal Landscape

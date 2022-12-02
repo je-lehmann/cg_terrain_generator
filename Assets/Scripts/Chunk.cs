@@ -10,6 +10,19 @@ public class Chunk : MonoBehaviour {
     public Material material;
     public MeshFilter meshFilter;
     public MeshRenderer meshRenderer;
+    private bool updatedParameters;
+    
+    [Range (2, 64)] //depends on number of threads per chunk
+    public int resolution = 2; // this will be our resolution or LOD later on
+    void OnValidate() {
+        updatedParameters = true;
+    }
+    void Update() {
+        if (updatedParameters) {
+            updatedParameters = false; 
+            this.gameObject.GetComponentInParent<ChunkGenerator>().UpdateTerrain();
+        }
+    }
     public void InitializeChunk(Material mat, Vector3Int coords, Mesh mesh){
 
        if (meshFilter == null) {

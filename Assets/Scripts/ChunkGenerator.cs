@@ -18,10 +18,7 @@ public class ChunkGenerator : MonoBehaviour {
     [Range (-1f, 10f)]
     public float isoLevel = 0.0f; 
 
-     [Range (2, 100)]
-    public int vertsPerAxis = 2; // this will be our resolution or LOD later on
-    public int scale = 1; // we need that later on
-
+    public float scale = 1f; // we need that later on
     // Chunk Helpers
     public Chunk chunk;
     public Vector3Int numChunks = Vector3Int.one; // for know we only have one chunk
@@ -43,26 +40,30 @@ public class ChunkGenerator : MonoBehaviour {
     }
     void Update() {
         if (updatedParameters) {
-            updatedParameters = false;
-            // Debug.Log("Compute Shaders supported? " + SystemInfo.supportsComputeShaders);
-            
-            if (triBuffer != null || vertBuffer != null || numBuffer != null){
-                triBuffer.Release ();
-                vertBuffer.Release ();
-                numBuffer.Release ();
-            }
-            CreateBuffers();
-
-             if(GameObject.Find("FirstChunk") == null){
-                GenerateChunk();
-            }
-            UpdateChunkMesh(chunk);
-            
+            updatedParameters = false; 
+            UpdateTerrain();
         }
     }
+    public void UpdateTerrain(){
+          // Debug.Log("Compute Shaders supported? " + SystemInfo.supportsComputeShaders);
+            
+        if (triBuffer != null || vertBuffer != null || numBuffer != null){
+            triBuffer.Release ();
+            vertBuffer.Release ();
+            numBuffer.Release ();
+        }
+
+        CreateBuffers();
+
+        if(GameObject.Find("FirstChunk") == null){
+            GenerateChunk();
+        }
+        
+        UpdateChunkMesh(chunk);
+    }
     void CreateBuffers () {
-        int numPoints = vertsPerAxis * vertsPerAxis * vertsPerAxis;
-        int numVoxelsPerAxis = vertsPerAxis - 1; 
+        int numPoints = chunk.resolution * chunk.resolution * chunk.resolution;
+        int numVoxelsPerAxis = chunk.resolution - 1; 
         int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
         int maxTriangleCount = numVoxels * 5; //max of 5 polygons per cube
 
@@ -83,20 +84,20 @@ public class ChunkGenerator : MonoBehaviour {
     }
      public void UpdateChunkMesh (Chunk chunk) {
         
-        int numVoxelsPerAxis = vertsPerAxis - 1;
+        int numVoxelsPerAxis = chunk.resolution - 1;
         // int numThreadsPerAxis = Mathf.CeilToInt (numVoxelsPerAxis / (float) threadGroupSize);
 
         // placeholder for position of chunk
         Vector3Int coord = Vector3Int.zero;
         
         // generate noisy density values
-        densityFunction.Generate (vertBuffer, vertsPerAxis);
+        densityFunction.Generate (vertBuffer, chunk.resolution, scale, chunk.resolution);
        
         triBuffer.SetCounterValue (0); // resets number of elements in the buffer to 0
         int kernelHandle = marchingCubes.FindKernel("MarchingCubes");
         marchingCubes.SetBuffer (kernelHandle, "vertices", vertBuffer);
         marchingCubes.SetBuffer (kernelHandle, "triangles", triBuffer);
-        marchingCubes.SetInt ("vertsPerAxis", vertsPerAxis);
+        marchingCubes.SetInt ("vertsPerAxis", chunk.resolution);
         marchingCubes.SetFloat ("isoLevel", isoLevel);
 
         marchingCubes.Dispatch (0, 8, 8, 8); //num Threads.... how many are needed???
@@ -128,7 +129,7 @@ public class ChunkGenerator : MonoBehaviour {
         generatedMesh.vertices = vertices;
         generatedMesh.triangles = meshTriangles;
 
-        generatedMesh.RecalculateNormals(); 
+        generatedMesh.RecalculateNormals(); //replace by smooth normals later?
         
         chunk.UpdateMesh(generatedMesh);
     }
@@ -136,7 +137,7 @@ public class ChunkGenerator : MonoBehaviour {
     // draw red boundaries for debugging reasons
     void OnDrawGizmos () {
         Gizmos.color = Color.red;
-        float offset = vertsPerAxis - 1;
+        float offset = scale;
         Gizmos.DrawWireCube (Vector3.zero + new Vector3(offset/2 - 0.5f, offset/2 - 0.5f, offset/2 - 0.5f), Vector3.one * offset);
     }
     struct Triangle {
