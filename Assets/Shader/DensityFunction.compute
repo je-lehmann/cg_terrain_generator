@@ -14,6 +14,17 @@ float scale;
 float resolution;
 bool noiseEnabled;
 
+// For Frequency and Amplitude Manipulation: 
+bool noise3d;
+float octaveOneAmplitude;
+float octaveTwoAmplitude;
+float octaveThreeAmplitude;
+float octaveFourAmplitude;
+float octaveFiveAmplitude;
+float octaveSixAmplitude;
+float baseFrequency;
+
+
 [numthreads(16,8,8)]
 void DensityFunction (int3 id : SV_DispatchThreadID){
     
@@ -25,8 +36,15 @@ void DensityFunction (int3 id : SV_DispatchThreadID){
     float2 pos_xz = float2(pos.x, pos.z);
     float d = 0;
     if (noiseEnabled){
-        // We use horizontal Landscape and add different Frequencies of Perlin Noise
-        d = pos.y + 2 * snoise(0.3*pos); //+ 1 * ClassicNoise(0.4*pos_2) ...
+        if(noise3d) {
+            // We use horizontal Landscape and add different Octaves of SNoise
+            d = pos.y + octaveOneAmplitude * snoise(baseFrequency*pos) + octaveTwoAmplitude * snoise(baseFrequency*2*pos) + octaveThreeAmplitude * snoise(baseFrequency*4*pos) + octaveFourAmplitude * snoise(baseFrequency*8*pos) + octaveFiveAmplitude * snoise(baseFrequency*16*pos) + octaveSixAmplitude * snoise(baseFrequency*32*pos);
+        } else {
+            d = pos.y + octaveOneAmplitude * ClassicNoise(baseFrequency*pos_xz) + octaveTwoAmplitude * ClassicNoise(baseFrequency*2*pos_xz) + octaveThreeAmplitude * ClassicNoise(baseFrequency*4*pos_xz) + octaveFourAmplitude * ClassicNoise(baseFrequency*8*pos_xz) + octaveFiveAmplitude * ClassicNoise(baseFrequency*16*pos_xz) + octaveSixAmplitude * ClassicNoise(baseFrequency*32*pos_xz);
+
+
+        }
+     
 
     } else {
         // For a horizontal Landscape
