@@ -20,8 +20,8 @@ void DensityFunction (int3 id : SV_DispatchThreadID){
     if (id.x >= vertsPerAxis || id.y >= vertsPerAxis || id.z >= vertsPerAxis) {
         return;
     }
-    scale = scale / (vertsPerAxis);
-    float3 pos = id * scale - scale/2; 
+    scale = scale / (vertsPerAxis - 1);
+    float3 pos = id * scale; 
     float2 pos_xz = float2(pos.x, pos.z);
     float d = 0;
     if (noiseEnabled){

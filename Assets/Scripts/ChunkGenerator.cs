@@ -15,9 +15,10 @@ public class ChunkGenerator : MonoBehaviour {
     [Header ("Voxel Params")]
     
     // Changed Ranges for better visability 
-    [Range (-1f, 10f)]
+    [Range (0f, 10f)]
     public float isoLevel = 0.0f; 
 
+    [Range (0f, 200f)]
     public float scale = 1f; // we need that later on
     // Chunk Helpers
     public Chunk chunk;
@@ -138,7 +139,7 @@ public class ChunkGenerator : MonoBehaviour {
     void OnDrawGizmos () {
         Gizmos.color = Color.red;
         float offset = scale;
-        Gizmos.DrawWireCube (Vector3.zero + new Vector3(offset/2 - 0.5f, offset/2 - 0.5f, offset/2 - 0.5f), Vector3.one * offset);
+        Gizmos.DrawWireCube (Vector3.zero + new Vector3(offset/2, offset/2, offset/2), Vector3.one * offset);
     }
     struct Triangle {
             public Vector3 a;
