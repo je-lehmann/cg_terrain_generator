@@ -1,5 +1,6 @@
 // set input Parameters for density computation, here we can implement constraints later :)
 // we need this here: https://docs.unity3d.com/ScriptReference/ComputeBuffer.html
+// RELEASE BUFFERS?
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,6 +13,7 @@ public class DensityFunction : MonoBehaviour
     public bool noiseEnabled = true; // does not update the mesh yet
     bool updatedParameters;
     private ChunkGenerator generator;
+    public int seed;
 
     void OnValidate() {
         updatedParameters = true;
@@ -20,24 +22,20 @@ public class DensityFunction : MonoBehaviour
     void Update() {
         if (updatedParameters) {
             updatedParameters = false; 
-            generator.UpdateTerrain();
+            generator.UpdateTerrain(true);
         }
     }
     // returns noised pointset from the gpu that we need for mesh generation, it makes sense
     // to have different versions of this function later...
     // densityFunction.Generate (vertBuffer, pointsPerAxis, scale, drawArea, center);           
-     public ComputeBuffer Generate (ComputeBuffer vertBuffer, int vertsPerAxis, float scale, float resolution) {
-        int num_points = vertsPerAxis * vertsPerAxis * vertsPerAxis;
-        // int numThreadsPerAxis = Mathf.CeilToInt (vertsPerAxis / (float) threadGroupSize);
-
+     public ComputeBuffer Generate (ComputeBuffer vertBuffer, int resolution, float scale, Vector3 center) {
+        int num_points = resolution * resolution * resolution;
         // fill up the point buffer in compute shader now
         // set parameters, add more params later
         densityFunction.SetBuffer(0, "verts", vertBuffer);
-        densityFunction.SetInt("vertsPerAxis", vertsPerAxis);
+        densityFunction.SetVector("center", center);
+        densityFunction.SetInt("resolution", resolution);
         densityFunction.SetFloat("scale", scale);
-        densityFunction.SetFloat("resolution", resolution);
-
-
         densityFunction.SetBool("noiseEnabled", noiseEnabled); 
 
         densityFunction.Dispatch(0, 8, 8, 8); // is that correct?

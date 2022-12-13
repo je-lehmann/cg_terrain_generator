@@ -25,7 +25,7 @@ float3 interpolateVerts(float4 vert_a, float4 vert_b) {
     return vert_a.xyz + t * (vert_b.xyz - vert_a.xyz);
 }
 
-[numthreads(16,8,8)]
+[numthreads(8,8,8)]
 void MarchingCubes (int3 id : SV_DispatchThreadID)
 {   
     // stop 1 before because voxel includes adjecent points
