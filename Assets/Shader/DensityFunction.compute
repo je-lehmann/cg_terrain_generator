@@ -9,20 +9,26 @@
 //static const int numThreads = 64; // overwrite this? 
 //for GTX 1650 the maxThreads is 12800, but Unity only allows 1024 :(
 RWStructuredBuffer<float4> verts;
-int vertsPerAxis;
-float scale;
-float resolution;
-bool noiseEnabled;
+StructuredBuffer<float3> offsets;
 
-[numthreads(16,8,8)]
+int resolution;
+float scale;
+bool noiseEnabled;
+float3 center;
+
+
+[numthreads(8,8,8)]
 void DensityFunction (int3 id : SV_DispatchThreadID){
     
-    if (id.x >= vertsPerAxis || id.y >= vertsPerAxis || id.z >= vertsPerAxis) {
+    if (id.x >= resolution || id.y >= resolution || id.z >= resolution) {
         return;
     }
-    scale = scale / (vertsPerAxis - 1);
-    float3 pos = id * scale; 
-    float2 pos_xz = float2(pos.x, pos.z);
+    //scale = scale / (vertsPerAxis - 1);
+    //float3 pos = id * scale; 
+    // float2 pos_xz = float2(pos.x, pos.z);
+
+    float spacing = scale / (resolution - 1);
+    float3 pos = (spacing * id) + center - scale/2;
     float d = 0;
     if (noiseEnabled){
         // We use horizontal Landscape and add different Frequencies of Perlin Noise
@@ -33,6 +39,6 @@ void DensityFunction (int3 id : SV_DispatchThreadID){
         d = pos.y;
     }
 
-    int index = id.x + id.y * vertsPerAxis + id.z * vertsPerAxis * vertsPerAxis;
+    int index = id.x + id.y * resolution + id.z * resolution * resolution;
     verts[index] = float4(pos, d);
 }
