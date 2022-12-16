@@ -14,6 +14,29 @@ public class DensityFunction : MonoBehaviour
     bool updatedParameters;
     private ChunkGenerator generator;
     public int seed;
+    public bool noise3d = false;
+
+    [Range (0f, 0.1f)]
+    public float baseFrequency = 0.001f; 
+
+    [Range (0f, 50f)]
+    public float octaveOneAmplitude = 500f; 
+
+    [Range (0f, 50f)]
+    public float octaveTwoAmplitude = 0f; 
+
+    [Range (0f, 10f)]
+    public float octaveThreeAmplitude = 0f; 
+
+    [Range (0f, 10f)]
+    public float octaveFourAmplitude = 0f; 
+
+    [Range (0f, 10f)]
+    public float octaveFiveAmplitude = 0f; 
+
+    [Range (0f, 10f)]
+    public float octaveSixAmplitude = 0f; 
+
 
     void OnValidate() {
         updatedParameters = true;
@@ -36,7 +59,15 @@ public class DensityFunction : MonoBehaviour
         densityFunction.SetVector("center", center);
         densityFunction.SetInt("resolution", resolution);
         densityFunction.SetFloat("scale", scale);
-        densityFunction.SetBool("noiseEnabled", noiseEnabled); 
+        densityFunction.SetBool("noiseEnabled", noiseEnabled);
+        densityFunction.SetBool("noise3d", noise3d); 
+        densityFunction.SetFloat("baseFrequency", baseFrequency);
+        densityFunction.SetFloat("octaveOneAmplitude", octaveOneAmplitude);
+        densityFunction.SetFloat("octaveTwoAmplitude", octaveTwoAmplitude);
+        densityFunction.SetFloat("octaveThreeAmplitude", octaveThreeAmplitude);
+        densityFunction.SetFloat("octaveFourAmplitude", octaveFourAmplitude);
+        densityFunction.SetFloat("octaveFiveAmplitude", octaveFiveAmplitude);
+        densityFunction.SetFloat("octaveSixAmplitude", octaveSixAmplitude);
 
         densityFunction.Dispatch(0, 8, 8, 8); // is that correct?
 

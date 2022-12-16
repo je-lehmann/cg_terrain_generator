@@ -44,18 +44,16 @@ public class ChunkGenerator : MonoBehaviour {
     void Update() {
         if (updatedParameters) {
             updatedParameters = false; 
-            foreach(Chunk c in chunkList){
-                // Debug.Log("destroyed" +  c.transform.gameObject.name);
-                DestroyImmediate(c.transform.gameObject);
-            }
-            chunkList.Clear();
             UpdateTerrain();
-
         }
     }
     public void UpdateTerrain(bool forceUpdate = false){
           // Debug.Log("Compute Shaders supported? " + SystemInfo.supportsComputeShaders);
-            
+        foreach(Chunk c in chunkList){
+            // Debug.Log("destroyed" +  c.transform.gameObject.name);
+            DestroyImmediate(c.transform.gameObject);
+        }
+            chunkList.Clear();
         if (triBuffer != null || vertBuffer != null || numBuffer != null){
             triBuffer.Release ();
             vertBuffer.Release ();
@@ -65,14 +63,27 @@ public class ChunkGenerator : MonoBehaviour {
         CreateBuffers();
         // activeChunks.Clear();
         //chunk creation
-        for(int i = 0; i < chunkXZ.x; i++) {
-            for(int j = 0; j < chunkXZ.y; j++) {
-                 if(GameObject.Find($"Chunk ({i}, {j})") == null){
-                  //  Debug.Log("Create new Chunk");
-                 GenerateChunk(new Vector2Int(i,j));
+        if(!forceUpdate){
+            for(int i = 0; i < chunkXZ.x; i++) {
+                for(int j = 0; j < chunkXZ.y; j++) {
+                    if(GameObject.Find($"Chunk ({i}, {j})") == null){
+                    //  Debug.Log("Create new Chunk");
+                    GenerateChunk(new Vector2Int(i,j));
+                    }
+                }
+            }
+        } else {
+            for(int i = 0; i < chunkXZ.x; i++) {
+                for(int j = 0; j < chunkXZ.y; j++) {
+                    DeleteChunk(new Vector2Int(i,j));
+                    if(GameObject.Find($"Chunk ({i}, {j})") == null){
+                    //  Debug.Log("Create new Chunk");
+                    GenerateChunk(new Vector2Int(i,j));
+                    }
                 }
             }
         }
+        
     }
     void CreateBuffers () {
         int numPoints = resolution * resolution * resolution;
@@ -89,7 +100,7 @@ public class ChunkGenerator : MonoBehaviour {
     }
      void GenerateChunk(Vector2Int position) {
         // Debug.Log("pos1" + position);
-        Chunk newChunk = new Chunk();
+        Chunk newChunk;
         GameObject chunkObject = new GameObject($"Chunk ({position.x}, {position.y})");
         chunkObject.transform.parent = terrain.transform;
         newChunk = chunkObject.AddComponent<Chunk>();
@@ -99,7 +110,7 @@ public class ChunkGenerator : MonoBehaviour {
     }
     void DeleteChunk(Vector2Int position) {
         GameObject doomedChunk = (GameObject.Find($"Chunk ({position.x}, {position.y})"));
-        Destroy(doomedChunk);
+        DestroyImmediate(doomedChunk);
     }
      public void UpdateMesh (Chunk chunk) {
         
