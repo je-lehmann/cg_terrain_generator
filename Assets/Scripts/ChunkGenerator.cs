@@ -15,10 +15,10 @@ public class ChunkGenerator : MonoBehaviour {
     [Header ("Voxel Params")]
     
     // Changed Ranges for better visability 
-    [Range (0f, 200f)]
+    [Range (0f, 10f)]
     public float isoLevel = 0.0f; 
 
-    [Range (0f, 10000f)]
+    [Range (0f, 200f)]
     public float scale = 1f; // we need that later on
     // Chunk Helpers
     public Chunk chunk;

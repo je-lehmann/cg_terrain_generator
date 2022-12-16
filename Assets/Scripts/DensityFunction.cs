@@ -10,29 +10,6 @@ public class DensityFunction : MonoBehaviour
     const int threadGroupSize = 8;
     public ComputeShader densityFunction;
     public bool noiseEnabled = true; // does not update the mesh yet
-    public bool noise3d = false;
-
-    [Range (0f, 0.1f)]
-    public float baseFrequency = 0.001f; 
-
-    [Range (0f, 1000f)]
-    public float octaveOneAmplitude = 500f; 
-
-    [Range (0f, 1000f)]
-    public float octaveTwoAmplitude = 0f; 
-
-    [Range (0f, 1000f)]
-    public float octaveThreeAmplitude = 0f; 
-
-    [Range (0f, 1000f)]
-    public float octaveFourAmplitude = 0f; 
-
-    [Range (0f, 100f)]
-    public float octaveFiveAmplitude = 0f; 
-
-    [Range (0f, 100f)]
-    public float octaveSixAmplitude = 0f; 
-
     bool updatedParameters;
     private ChunkGenerator generator;
 
@@ -62,14 +39,6 @@ public class DensityFunction : MonoBehaviour
 
 
         densityFunction.SetBool("noiseEnabled", noiseEnabled); 
-        densityFunction.SetBool("noise3d", noise3d); 
-        densityFunction.SetFloat("baseFrequency", baseFrequency);
-        densityFunction.SetFloat("octaveOneAmplitude", octaveOneAmplitude);
-        densityFunction.SetFloat("octaveTwoAmplitude", octaveTwoAmplitude);
-        densityFunction.SetFloat("octaveThreeAmplitude", octaveThreeAmplitude);
-        densityFunction.SetFloat("octaveFourAmplitude", octaveFourAmplitude);
-        densityFunction.SetFloat("octaveFiveAmplitude", octaveFiveAmplitude);
-        densityFunction.SetFloat("octaveSixAmplitude", octaveSixAmplitude);
 
         densityFunction.Dispatch(0, 8, 8, 8); // is that correct?
 
