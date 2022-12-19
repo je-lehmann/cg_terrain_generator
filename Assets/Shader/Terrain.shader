@@ -2,7 +2,15 @@ Shader "Custom/Terrain"
 {
     Properties
     {
-        _Color ("Color", Color) = (1,1,1,1)
+        _Color1 ("Color", Color) = (1,1,1,1)
+        _Color2 ("Color", Color) = (1,1,1,1)
+        _Color3 ("Color", Color) = (1,1,1,1)
+        _Color4 ("Color", Color) = (1,1,1,1)
+        _threshold1 ("threshold1", Range(-20,10)) = 0.0
+        _threshold2 ("threshold2", Range(-10,10)) = 0.0
+        _threshold3 ("threshold3", Range(-10,10)) = 0.0
+        _threshold4 ("threshold4", Range(-10,20)) = 0.0
+
         _MainTex ("Albedo (RGB)", 2D) = "white" {}
         _Glossiness ("Smoothness", Range(0,1)) = 0.5
         _Metallic ("Metallic", Range(0,1)) = 0.0
@@ -24,12 +32,23 @@ Shader "Custom/Terrain"
         struct Input
         {
             float2 uv_MainTex;
+            float3 worldPos;
+            float3 worldNormal;
         };
 
         half _Glossiness;
         half _Metallic;
-        fixed4 _Color;
 
+        fixed3 _Color1;
+        fixed3 _Color2;
+        fixed3 _Color3;
+        fixed3 _Color4;
+        fixed _threshold1;
+        fixed _threshold2;
+        fixed _threshold3;
+        fixed _threshold4;
+
+      
         // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
         // See https://docs.unity3d.com/Manual/GPUInstancing.html for more information about instancing.
         // #pragma instancing_options assumeuniformscaling
@@ -39,13 +58,26 @@ Shader "Custom/Terrain"
 
         void surf (Input IN, inout SurfaceOutputStandard o)
         {
-            // Albedo comes from a texture tinted by color
-            fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
-            o.Albedo = c.rgb; // TODO: color our generated mesh accordingly... we may need another generator script...
+            // TODO: color our generated mesh accordingly... we may need another generator script...
+            if(IN.worldPos.y < _threshold2){
+             o.Albedo = _Color1; 
+            }
+            
+            if(IN.worldPos.y > _threshold2 && IN.worldPos.y < _threshold3){
+             o.Albedo = _Color2; 
+            }
+            
+            if(IN.worldPos.y > _threshold3 && IN.worldPos.y < _threshold4){
+             o.Albedo = _Color3; 
+            }
+            
+            if(IN.worldPos.y > _threshold4){
+             o.Albedo = _Color4; 
+            }
+
             // Metallic and smoothness come from slider variables
             o.Metallic = _Metallic;
             o.Smoothness = _Glossiness;
-            o.Alpha = c.a;
         }
         ENDCG
     }

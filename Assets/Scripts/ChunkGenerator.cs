@@ -14,7 +14,7 @@ public class ChunkGenerator : MonoBehaviour {
     [Header ("Voxel Params")]
     
     // Changed Ranges for better visability 
-    [Range (0f, 10f)]
+    [Range (-100f, 100f)]
     public float isoLevel = 0.0f; 
     public int seed;
 
@@ -53,7 +53,7 @@ public class ChunkGenerator : MonoBehaviour {
             // Debug.Log("destroyed" +  c.transform.gameObject.name);
             DestroyImmediate(c.transform.gameObject);
         }
-            chunkList.Clear();
+        chunkList.Clear();
         if (triBuffer != null || vertBuffer != null || numBuffer != null){
             triBuffer.Release ();
             vertBuffer.Release ();
@@ -66,6 +66,7 @@ public class ChunkGenerator : MonoBehaviour {
         if(!forceUpdate){
             for(int i = 0; i < chunkXZ.x; i++) {
                 for(int j = 0; j < chunkXZ.y; j++) {
+                    // check performance of GameObject.Find!
                     if(GameObject.Find($"Chunk ({i}, {j})") == null){
                     //  Debug.Log("Create new Chunk");
                     GenerateChunk(new Vector2Int(i,j));
