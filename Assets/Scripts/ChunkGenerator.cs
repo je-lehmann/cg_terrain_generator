@@ -83,7 +83,7 @@ public class ChunkGenerator : MonoBehaviour {
                 for(int j = 0; j < chunkXZ.y; j++) {
                     // check performance of GameObject.Find!
                     if(GameObject.Find($"Chunk ({cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i}, {cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j})") == null){
-                    //  Debug.Log("Create new Chunk");
+                    // Debug.Log("Create new Chunk");
                     GenerateChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
                     }
                 }
@@ -91,9 +91,9 @@ public class ChunkGenerator : MonoBehaviour {
         } else {
             for(int i = 0; i < chunkXZ.x; i++) {
                 for(int j = 0; j < chunkXZ.y; j++) {
-                    DeleteChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
+                    // DeleteChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
                     if(GameObject.Find($"Chunk ({cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i}, {cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j})") == null){
-                    //  Debug.Log("Create new Chunk");
+                    // Debug.Log("Create new Chunk");
                     GenerateChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
                     }
                 }
