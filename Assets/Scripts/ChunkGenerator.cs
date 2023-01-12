@@ -3,6 +3,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 [ExecuteInEditMode]
 public class ChunkGenerator : MonoBehaviour {
@@ -10,6 +11,7 @@ public class ChunkGenerator : MonoBehaviour {
     public Material terrainMaterial;
     public ComputeShader marchingCubes;
     public DensityFunction densityFunction;
+    public Vector2Int cameraXZ;
 
     [Header ("Voxel Params")]
     
@@ -22,11 +24,11 @@ public class ChunkGenerator : MonoBehaviour {
     public float scale = 1f; // we need that later on
     // Chunk Helpers
     public List<Chunk> chunkList= new List<Chunk>();
-   // Dictionary<Vector2Int, Chunk> activeChunks = new Dictionary<Vector2Int, Chunk>();
+    Dictionary<Vector2Int, Chunk> activeChunks = new Dictionary<Vector2Int, Chunk>();
+    public Vector2Int chunkXZ;
     
     [Range (2, 64)] //depends on number of threads per chunk
     public int resolution = 2; // this will be our resolution or LOD later on    
-    public Vector2Int chunkXZ = Vector2Int.one; // for know we only have one chunk
     
     // Buffers
     ComputeBuffer triBuffer;
@@ -35,16 +37,25 @@ public class ChunkGenerator : MonoBehaviour {
     const int threadGroupSize = 8;
     bool updatedParameters;
     private float y_Offset = 0;
-// 
+
+    // update helpers
+    private float nextActionTime = 0.0f;
+    public float period = 0.1f;
     // updated parameters in Editor lead to new mesh generation
     void OnValidate() {
         terrain = this.gameObject;
         updatedParameters = true;
     }
     void Update() {
+
         if (updatedParameters) {
             updatedParameters = false; 
             UpdateTerrain();
+            UpdateChunkVisibility();
+        }
+        // on variable change: XZ camera position
+         if (Time.time > nextActionTime ) {
+            UpdateChunkVisibility();
         }
     }
     public void UpdateTerrain(bool forceUpdate = false){
@@ -63,23 +74,27 @@ public class ChunkGenerator : MonoBehaviour {
         CreateBuffers();
         // activeChunks.Clear();
         //chunk creation
+        // TODO: make this position dependend on the converted camera grid position
+        // cameraXZ = new Vector2Int( (int)Mathf.Round(cameraPlanePosition.x) + (int)(Mathf.Round(chunkXZ.x)/2), (int)Mathf.Round(cameraPlanePosition.z) + (int)(Mathf.Round(chunkXZ.x)/2));
+
+        Vector2Int chunkIndex = cameraXZ;
         if(!forceUpdate){
             for(int i = 0; i < chunkXZ.x; i++) {
                 for(int j = 0; j < chunkXZ.y; j++) {
                     // check performance of GameObject.Find!
-                    if(GameObject.Find($"Chunk ({i}, {j})") == null){
+                    if(GameObject.Find($"Chunk ({cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i}, {cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j})") == null){
                     //  Debug.Log("Create new Chunk");
-                    GenerateChunk(new Vector2Int(i,j));
+                    GenerateChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
                     }
                 }
             }
         } else {
             for(int i = 0; i < chunkXZ.x; i++) {
                 for(int j = 0; j < chunkXZ.y; j++) {
-                    DeleteChunk(new Vector2Int(i,j));
-                    if(GameObject.Find($"Chunk ({i}, {j})") == null){
+                    DeleteChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
+                    if(GameObject.Find($"Chunk ({cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i}, {cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j})") == null){
                     //  Debug.Log("Create new Chunk");
-                    GenerateChunk(new Vector2Int(i,j));
+                    GenerateChunk(new Vector2Int(cameraXZ.x - (int)(Mathf.Round(chunkXZ.x)/2) + i, cameraXZ.y - (int)(Mathf.Round(chunkXZ.x)/2) + j));
                     }
                 }
             }
@@ -105,9 +120,36 @@ public class ChunkGenerator : MonoBehaviour {
         GameObject chunkObject = new GameObject($"Chunk ({position.x}, {position.y})");
         chunkObject.transform.parent = terrain.transform;
         newChunk = chunkObject.AddComponent<Chunk>();
-        newChunk.InitializeChunk(new Vector3(position.x, y_Offset ,position.y), terrainMaterial);
+        newChunk.InitializeChunk(new Vector3(position.x, y_Offset, position.y), terrainMaterial);
         chunkList.Add(newChunk);
+        
         UpdateMesh(newChunk);
+        // Debug.Log("NEW CHUNK" + newChunk.name);
+        // activeChunks.Add(position, newChunk);
+        // Debug current Dictionary Entries
+        // activeChunks.ToList().ForEach(x => Debug.Log(x));
+    }
+    void UpdateChunkVisibility() {
+        
+        // calculate relevant vector grid
+        // convert the camera position to the xz grid position (compare to center)
+        Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
+        Vector3 cameraPlanePosition  =  -bounds / 2 + (Vector3) Camera.main.transform.localPosition / scale + Vector3.one / scale / 2;
+        cameraPlanePosition.y = 0;
+        Vector2Int currentCameraXZ = cameraXZ;
+        // translate to coord origin and round to int
+        Vector2Int newCameraXZ = new Vector2Int((int)Mathf.Round(cameraPlanePosition.x) + (int)(Mathf.Round(chunkXZ.x)/2), (int)Mathf.Round(cameraPlanePosition.z) + (int)(Mathf.Round(chunkXZ.x)/2));
+        if(newCameraXZ != currentCameraXZ){
+            cameraXZ = newCameraXZ;
+            Debug.Log("CHUNK CAMERA UPDATE");
+            UpdateTerrain();
+        }
+            
+        // Debug.Log("cameraXZ" + cameraXZ);        
+
+        // disable unneeded chunks
+
+        // generate new chunks according to Chunk Buffer? 
     }
     void DeleteChunk(Vector2Int position) {
         GameObject doomedChunk = (GameObject.Find($"Chunk ({position.x}, {position.y})"));
@@ -117,10 +159,11 @@ public class ChunkGenerator : MonoBehaviour {
         
         //estimate center so we can propagate noise along multiple chunks
         Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
-        Vector3 center =  -bounds / 2 + (Vector3) chunk.coords * scale + Vector3.one * scale / 2;
+        Vector3 center =  -bounds / 2 + (Vector3) chunk.localCoords * scale + Vector3.one * scale / 2;
+        Debug.Log("CENTER" + center);
+
         // generate noisy density values
         center.y = 0; // whyyyy we need this... It should 0 despite center scaling
-        Debug.Log("CENTER" + center);
 
         densityFunction.Generate (vertBuffer, resolution, scale, center);
        
