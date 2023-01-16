@@ -134,8 +134,8 @@ public class ChunkGenerator : MonoBehaviour {
         Vector2Int newCameraXZ = new Vector2Int((int)Mathf.Round(cameraPlanePosition.x) + (int)(Mathf.Round(chunkXZ.x)/2), (int)Mathf.Round(cameraPlanePosition.z) + (int)(Mathf.Round(chunkXZ.x)/2));
         if(newCameraXZ != currentCameraXZ){
             cameraXZ = newCameraXZ;
-            Debug.Log("CHUNK CAMERA UPDATE");
-            // UpdateTerrain();
+            //Debug.Log("CHUNK CAMERA UPDATE");
+            UpdateTerrain();
         }
             
         // disable unneeded chunks
