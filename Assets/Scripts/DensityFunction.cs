@@ -45,7 +45,7 @@ public class DensityFunction : MonoBehaviour
     void Update() {
         if (updatedParameters) {
             updatedParameters = false; 
-            generator.UpdateTerrain(true);
+            generator.UpdateTerrain();
         }
     }
     // returns noised pointset from the gpu that we need for mesh generation, it makes sense
