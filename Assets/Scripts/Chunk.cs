@@ -15,10 +15,15 @@ public class Chunk : MonoBehaviour {
     public Vector3 worldCoords;
     
     [Range (2, 64)] //depends on number of threads per chunk
-    public int resolution = 2; // this will be our resolution or LOD later on
+    private int[] LODLevels = new int[4]; // this will be our resolution or LOD later on
   
     public void InitializeChunk(Vector3 position, Material mat){
-        name = "Chunk" + position;
+       name = "Chunk" + position;
+       int maxLOD = gameObject.GetComponentInParent<ChunkGenerator>().maxResolution;
+       LODLevels[3] = maxLOD;
+       LODLevels[2] = maxLOD - 10;
+       LODLevels[1] = maxLOD - 20;
+       LODLevels[0] = maxLOD - 30;
        if (meshFilter == null) {
             meshFilter = gameObject.AddComponent<MeshFilter> ();
         }
@@ -38,5 +43,35 @@ public class Chunk : MonoBehaviour {
     public void UpdateMesh(Mesh mesh) {
         meshFilter.sharedMesh = mesh;
         worldCoords = gameObject.transform.position;
+    }
+
+    public void GenerateLODMesh(ComputeBuffer vertBuffer, ComputeBuffer triBuffer, Vector2Int cameraXZ, DensityFunction func, float scale, Vector3 center, float isoLevel, int numThreads, ComputeShader shader) {
+        int chunkResolution;
+        Vector2Int localXZ = new Vector2Int((int)localCoords.x, (int)localCoords.z);
+       // Debug.Log("DIST " + Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) + " for " + name);
+        switch (Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)))
+        {
+            case 0:
+                chunkResolution =  LODLevels[3]; 
+                break;
+            case 1:
+                chunkResolution =  LODLevels[2]; 
+                break;
+            case 2:
+                chunkResolution =  LODLevels[1]; 
+                break;
+            default:
+                chunkResolution =  LODLevels[0];
+                break;
+        }
+
+        func.Generate (vertBuffer, chunkResolution, scale, center);
+        triBuffer.SetCounterValue (0); // resets number of elements in the buffer to 0
+        int kernelHandle = shader.FindKernel("MarchingCubes");
+        shader.SetBuffer (kernelHandle, "vertices", vertBuffer);
+        shader.SetBuffer (kernelHandle, "triangles", triBuffer);
+        shader.SetInt ("vertsPerAxis", chunkResolution);
+        shader.SetFloat ("isoLevel", isoLevel);
+        shader.Dispatch (0, 8, 8, 8); //num Threads.... how many are needed???
     }
 }

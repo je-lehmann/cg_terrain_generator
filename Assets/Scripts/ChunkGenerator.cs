@@ -25,10 +25,12 @@ public class ChunkGenerator : MonoBehaviour {
     // Chunk Helpers
     public List<Chunk> chunkList= new List<Chunk>();
     Dictionary<Vector2Int, Chunk> activeChunks = new Dictionary<Vector2Int, Chunk>();
+   
+    [Header("at least 4x4 for LOD")]
     public Vector2Int chunkXZ;
     
-    [Range (2, 64)] //depends on number of threads per chunk
-    public int resolution = 2; // this will be our resolution or LOD later on    
+    [Range (32, 64)] //depends on number of threads per chunk
+    public int maxResolution = 60; // this will be our resolution or LOD later on    
     
     // Buffers
     ComputeBuffer triBuffer;
@@ -102,8 +104,8 @@ public class ChunkGenerator : MonoBehaviour {
         
     }
     void CreateBuffers () {
-        int numPoints = resolution * resolution * resolution;
-        int numVoxelsPerAxis = resolution - 1; 
+        int numPoints = maxResolution * maxResolution * maxResolution;
+        int numVoxelsPerAxis = maxResolution - 1; 
         int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
         int maxTriangleCount = numVoxels * 5; //max of 5 polygons per cube
 
@@ -145,10 +147,7 @@ public class ChunkGenerator : MonoBehaviour {
             UpdateTerrain();
         }
             
-        // Debug.Log("cameraXZ" + cameraXZ);        
-
         // disable unneeded chunks
-
         // generate new chunks according to Chunk Buffer? 
     }
     void DeleteChunk(Vector2Int position) {
@@ -160,29 +159,21 @@ public class ChunkGenerator : MonoBehaviour {
         //estimate center so we can propagate noise along multiple chunks
         Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
         Vector3 center =  -bounds / 2 + (Vector3) chunk.localCoords * scale + Vector3.one * scale / 2;
-        Debug.Log("CENTER" + center);
+        // Debug.Log("CENTER" + center);
 
         // generate noisy density values
         center.y = 0; // whyyyy we need this... It should 0 despite center scaling
 
-        densityFunction.Generate (vertBuffer, resolution, scale, center);
+        int numThreads = 8;
+        chunk.GenerateLODMesh(vertBuffer, triBuffer, cameraXZ, densityFunction, scale, center, isoLevel, numThreads, marchingCubes);
        
-        triBuffer.SetCounterValue (0); // resets number of elements in the buffer to 0
-        int kernelHandle = marchingCubes.FindKernel("MarchingCubes");
-        marchingCubes.SetBuffer (kernelHandle, "vertices", vertBuffer);
-        marchingCubes.SetBuffer (kernelHandle, "triangles", triBuffer);
-        marchingCubes.SetInt ("vertsPerAxis", resolution);
-        marchingCubes.SetFloat ("isoLevel", isoLevel);
-
-        marchingCubes.Dispatch (0, 8, 8, 8); //num Threads.... how many are needed???
-
         // Get number of triangles in the triangle buffer
         ComputeBuffer.CopyCount (triBuffer, numBuffer, 0);
         int[] triCountArray = new int[numBuffer.count];
         numBuffer.GetData (triCountArray);
         int numTriangles = triCountArray[0];
 
-        Debug.Log(triCountArray[0] + " triangles were generated");
+       // Debug.Log(triCountArray[0] + " triangles were generated");
 
         // Get triangle data from shader
         Triangle[] triangles = new Triangle[numTriangles];
