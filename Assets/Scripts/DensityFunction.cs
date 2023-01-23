@@ -13,7 +13,6 @@ public class DensityFunction : MonoBehaviour
     public bool noiseEnabled = true; // does not update the mesh yet
     bool updatedParameters;
     private ChunkGenerator generator;
-    public int seed;
     public bool noise3d = false;
 
     [Range (0f, 0.1f)]

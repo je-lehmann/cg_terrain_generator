@@ -13,6 +13,7 @@ public class ChunkGenerator : MonoBehaviour {
     public ComputeShader marchingCubes;
     public DensityFunction densityFunction;
     public Vector2Int cameraXZ;
+    public bool camCentered = true;
 
     [Header ("Voxel Params")]
     
@@ -89,7 +90,11 @@ public class ChunkGenerator : MonoBehaviour {
         for (int i = 0; i < totalChunks; i++) {
             int x = i % chunkXZ.x;
             int y = i / chunkXZ.x;
-            GenerateChunk(new Vector2Int(cameraXZ.x - roundedChunk + x, cameraXZ.y - roundedChunk + y));
+            if (camCentered) {
+                GenerateChunk(new Vector2Int(cameraXZ.x - roundedChunk + x, cameraXZ.y - roundedChunk + y));
+            } else {
+                GenerateChunk(new Vector2Int(cameraXZ.x - roundedChunk + x, cameraXZ.y + y));
+            }
         }
 
     }
