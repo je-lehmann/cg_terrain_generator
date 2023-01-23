@@ -43,7 +43,8 @@ public class DensityFunction : MonoBehaviour
     }
     void Update() {
         if (updatedParameters) {
-            updatedParameters = false; 
+            updatedParameters = false;
+            generator.ClearAllChunks();
             generator.UpdateTerrain();
         }
     }

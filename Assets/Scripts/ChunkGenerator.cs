@@ -1,10 +1,9 @@
-// Test Script for generating a chunk with the marching cubes compute shader
+//TODO: Add dispatch operations!
 
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.ProBuilder;
-using UnityEngine.ProBuilder.MeshOperations;
+using System.Linq;
 
 [ExecuteInEditMode]
 public class ChunkGenerator : MonoBehaviour {
@@ -25,8 +24,9 @@ public class ChunkGenerator : MonoBehaviour {
     [Range (0f, 200f)]
     public float scale = 1f; // we need that later on
     // Chunk Helpers
-    public List<Chunk> chunkList= new List<Chunk>();
-    Dictionary<Vector2Int, Chunk> activeChunks = new Dictionary<Vector2Int, Chunk>();
+    public List<Chunk> chunkList = new List<Chunk>();
+    // Chunk dictionary should replace the old chunk list
+    Dictionary<string, Chunk> chunkDict = new Dictionary<string, Chunk>();
    
     [Header("at least 4x4 for LOD")]
     public Vector2Int chunkXZ;
@@ -49,13 +49,15 @@ public class ChunkGenerator : MonoBehaviour {
     void OnValidate() {
         terrain = this.gameObject;
         updatedParameters = true;
+        // Debug.Log("Compute Shaders supported? " + SystemInfo.supportsComputeShaders);
     }
+    
     void Update() {
 
         if (updatedParameters) {
             updatedParameters = false; 
+            ClearAllChunks();
             UpdateTerrain();
-            UpdateChunkVisibility();
         }
         // on variable change: XZ camera position
         if (Camera.main.transform.hasChanged) {
@@ -65,18 +67,11 @@ public class ChunkGenerator : MonoBehaviour {
         }
     }
     public void UpdateTerrain(){
-          // Debug.Log("Compute Shaders supported? " + SystemInfo.supportsComputeShaders);
-        for (int i = 0; i < chunkList.Count; i++)
-        {
-            Chunk c = chunkList[i];
-            DestroyImmediate(c.transform.gameObject);
-        }
-        chunkList.Clear();
 
         if (triBuffer != null || vertBuffer != null || numBuffer != null){
-            triBuffer.Release ();
-            vertBuffer.Release ();
-            numBuffer.Release ();
+            triBuffer.Release();
+            vertBuffer.Release();
+            numBuffer.Release();
         }
 
         CreateBuffers();
@@ -114,23 +109,35 @@ public class ChunkGenerator : MonoBehaviour {
 
      void GenerateChunk(Vector2Int position) {
         // Debug.Log("pos1" + position);
-        Chunk newChunk;
-        GameObject chunkObject = new GameObject($"Chunk ({position.x}, {position.y})");
-        chunkObject.transform.parent = terrain.transform;
-        newChunk = chunkObject.AddComponent<Chunk>();
-        newChunk.InitializeChunk(new Vector3(position.x, y_Offset, position.y), terrainMaterial);
-        chunkList.Add(newChunk);
-        
-        UpdateMesh(newChunk);
+        // dont generate chunk if it already exists
+        string chunkKey = "Chunk (" + position.x + "," + position.y + ")";
+        if (chunkDict.ContainsKey(chunkKey)) {
+            Debug.Log("chunkKey already present!");
+        } else {
+            Chunk newChunk;
+            GameObject chunkObject = new GameObject(chunkKey);
+
+            // Debug.Log(chunkKey);
+            chunkObject.transform.parent = terrain.transform;
+            newChunk = chunkObject.AddComponent<Chunk>();
+            newChunk.InitializeChunk(new Vector3(position.x, y_Offset, position.y), terrainMaterial);
+            chunkDict.TryAdd(chunkKey, newChunk);
+            
+            UpdateMesh(newChunk);
+        }
+       
         // Debug.Log("NEW CHUNK" + newChunk.name);
         // activeChunks.Add(position, newChunk);
+
         // Debug current Dictionary Entries
-        // activeChunks.ToList().ForEach(x => Debug.Log(x));
+        // chunkDict.ToList().ForEach(x => Debug.Log(x));
     }
     void UpdateChunkVisibility() {
         
         // calculate relevant vector grid
         // convert the camera position to the xz grid position (compare to center)
+        ClearAllChunks();
+
         Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
         Vector3 cameraPlanePosition  =  -bounds / 2 + (Vector3) Camera.main.transform.localPosition / scale + Vector3.one / scale / 2;
         cameraPlanePosition.y = 0;
@@ -146,9 +153,20 @@ public class ChunkGenerator : MonoBehaviour {
         // disable unneeded chunks
         // generate new chunks according to Chunk Buffer? 
     }
-    void DeleteChunk(Vector2Int position) {
-        GameObject doomedChunk = (GameObject.Find($"Chunk ({position.x}, {position.y})"));
-        DestroyImmediate(doomedChunk);
+    
+    public void ClearAllChunks() {
+        // delete unneeded chunks
+        if(chunkDict.Count != 0) {
+            foreach (string key in chunkDict.Keys) {
+                // Get the Chunk associated with the current key
+                //Debug.Log(key);
+                Chunk c = chunkDict[key];
+                // Destroy the GameObject
+                DestroyImmediate(c.transform.gameObject);
+            }
+                chunkDict.Clear();
+        }
+        
     }
     public void UpdateMesh (Chunk chunk) {
         
@@ -204,12 +222,6 @@ public class ChunkGenerator : MonoBehaviour {
         //Debug.Log(generatedMesh);
     }
     
-    // draw red boundaries for debugging reasons
-    void OnDrawGizmos () {
-        Gizmos.color = Color.red;
-        float offset = scale;
-      //  Gizmos.DrawWireCube (Vector3.zero + new Vector3(offset/2 - 0.5f, offset/2 - 0.5f, offset/2 - 0.5f), Vector3.one * offset);
-    }
     struct Triangle {
             public Vector3 a;
             public Vector3 b;

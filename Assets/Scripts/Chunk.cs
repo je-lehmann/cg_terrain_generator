@@ -11,14 +11,12 @@ public class Chunk : MonoBehaviour {
     public MeshRenderer meshRenderer;
     private bool updatedParameters;
     public Mesh mesh;
-    public string name;
     public Vector3 worldCoords;
     
     [Range (2, 64)] //depends on number of threads per chunk
     private int[] LODLevels = new int[4]; // this will be our resolution or LOD later on
   
     public void InitializeChunk(Vector3 position, Material mat){
-       name = "Chunk" + position;
        int maxLOD = gameObject.GetComponentInParent<ChunkGenerator>().maxResolution;
        int[] lodModifiers = gameObject.GetComponentInParent<ChunkGenerator>().lodModifiers;
 

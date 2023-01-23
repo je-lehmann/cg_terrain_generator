@@ -90,13 +90,13 @@ Material:
     - _SrcBlend: 1
     - _UVSec: 0
     - _ZWrite: 1
-    - _threshold1: -19.3
+    - _threshold1: -16
     - _threshold2: -3.76
     - _threshold3: 5.2
     - _threshold4: 20
     m_Colors:
     - _Color: {r: 0, g: 0.12695694, b: 1, a: 1}
-    - _Color1: {r: 0.227451, g: 0.58431375, b: 0.8000001, a: 1}
+    - _Color1: {r: 0.22678883, g: 0.6322809, b: 0.8773585, a: 1}
     - _Color2: {r: 0.37177902, g: 0.509434, b: 0.24222143, a: 1}
     - _Color3: {r: 0.24705884, g: 0.2627451, b: 0.2784314, a: 1}
     - _Color4: {r: 0.90196085, g: 0.8588236, b: 0.854902, a: 1}
