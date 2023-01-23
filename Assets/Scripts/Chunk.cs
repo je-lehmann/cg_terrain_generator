@@ -13,7 +13,7 @@ public class Chunk : MonoBehaviour {
     public Mesh mesh;
     public Vector3 worldCoords;
     
-    [Range (2, 64)] //depends on number of threads per chunk
+    [Range (2, 64)] //depends on number of threads per chunk//
     private int[] LODLevels = new int[4]; // this will be our resolution or LOD later on
   
     public void InitializeChunk(Vector3 position, Material mat){
@@ -45,9 +45,27 @@ public class Chunk : MonoBehaviour {
         worldCoords = gameObject.transform.position;
     }
 
+    public void updateVisibility(Vector2Int cameraXZ, int maxDistance) {
+        Vector2Int localXZ = new Vector2Int((int)localCoords.x, (int)localCoords.z);
+        int[] lodModifiers = gameObject.GetComponentInParent<ChunkGenerator>().lodModifiers;
+        
+       /* if(Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) > maxDistance + 5) {
+            // destroy!
+            Debug.Log("destroy " + this);
+            gameObject.GetComponentInParent<ChunkGenerator>().ClearChunk(this);
+        }: */
+
+        if(Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) > maxDistance){
+            meshRenderer.enabled = false;
+        } else {
+            meshRenderer.enabled = true;
+        }
+    }
+
     public void GenerateLODMesh(ComputeBuffer vertBuffer, ComputeBuffer triBuffer, Vector2Int cameraXZ, DensityFunction func, float scale, Vector3 center, float isoLevel, int numThreads, ComputeShader shader) {
         int chunkResolution;
         Vector2Int localXZ = new Vector2Int((int)localCoords.x, (int)localCoords.z);
+
        // Debug.Log("DIST " + Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) + " for " + name);
         switch (Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)))
         {

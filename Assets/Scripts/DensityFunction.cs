@@ -12,7 +12,7 @@ public class DensityFunction : MonoBehaviour
     public ComputeShader densityFunction;
     public bool noiseEnabled = true; // does not update the mesh yet
     bool updatedParameters;
-    private ChunkGenerator generator;
+    public ChunkGenerator generator;
     public bool noise3d = false;
 
     [Range (0f, 0.1f)]
@@ -39,7 +39,6 @@ public class DensityFunction : MonoBehaviour
 
     void OnValidate() {
         updatedParameters = true;
-        generator = GameObject.Find("Terrain").GetComponent<ChunkGenerator>();
     }
     void Update() {
         if (updatedParameters) {
