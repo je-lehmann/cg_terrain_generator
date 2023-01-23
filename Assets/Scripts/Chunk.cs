@@ -20,10 +20,12 @@ public class Chunk : MonoBehaviour {
     public void InitializeChunk(Vector3 position, Material mat){
        name = "Chunk" + position;
        int maxLOD = gameObject.GetComponentInParent<ChunkGenerator>().maxResolution;
+       int[] lodModifiers = gameObject.GetComponentInParent<ChunkGenerator>().lodModifiers;
+
        LODLevels[3] = maxLOD;
-       LODLevels[2] = maxLOD - 10;
-       LODLevels[1] = maxLOD - 20;
-       LODLevels[0] = maxLOD - 30;
+       LODLevels[2] = maxLOD / lodModifiers[0];
+       LODLevels[1] = maxLOD / lodModifiers[1];
+       LODLevels[0] = maxLOD / lodModifiers[2];
        if (meshFilter == null) {
             meshFilter = gameObject.AddComponent<MeshFilter> ();
         }

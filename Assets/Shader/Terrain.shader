@@ -11,7 +11,11 @@ Shader "Custom/Terrain"
         _threshold3 ("threshold3", Range(-10,10)) = 0.0
         _threshold4 ("threshold4", Range(-10,20)) = 0.0
 
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
+        _MainTex1 ("Albedo (RGB)", 2D) = "white" {}
+        _MainTex2 ("Albedo (RGB)", 2D) = "white" {}
+        _MainTex3 ("Albedo (RGB)", 2D) = "white" {}
+        _MainTex4 ("Albedo (RGB)", 2D) = "white" {}
+
         _Glossiness ("Smoothness", Range(0,1)) = 0.5
         _Metallic ("Metallic", Range(0,1)) = 0.0
     }
@@ -31,7 +35,10 @@ Shader "Custom/Terrain"
 
         struct Input
         {
-            float2 uv_MainTex;
+            float2 uv_MainTex1;
+            float2 uv_MainTex2;
+            float2 uv_MainTex3;
+            float2 uv_MainTex4;
             float3 worldPos;
             float3 worldNormal;
         };
@@ -43,6 +50,10 @@ Shader "Custom/Terrain"
         fixed3 _Color2;
         fixed3 _Color3;
         fixed3 _Color4;
+        sampler2D _MainTex1;
+        sampler2D _MainTex2;
+        sampler2D _MainTex3;
+        sampler2D _MainTex4;
         fixed _threshold1;
         fixed _threshold2;
         fixed _threshold3;
@@ -60,21 +71,28 @@ Shader "Custom/Terrain"
         {
             // TODO: color our generated mesh accordingly... we may need another generator script...
             if(IN.worldPos.y < _threshold2){
-             o.Albedo = _Color1; 
+                // fixed4 c = tex2D (_MainTex1, IN.uv_MainTex1);
+                //o.Albedo = c.rgb;
+                o.Albedo = _Color1;
             }
             
             if(IN.worldPos.y > _threshold2 && IN.worldPos.y < _threshold3){
-             o.Albedo = _Color2; 
+                //fixed4 c = tex2D (_MainTex2, IN.uv_MainTex2);
+                //o.Albedo = c.rgb;
+                o.Albedo = _Color2;
             }
             
             if(IN.worldPos.y > _threshold3 && IN.worldPos.y < _threshold4){
-             o.Albedo = _Color3; 
+                //fixed4 c = tex2D (_MainTex3, IN.uv_MainTex3);
+                //o.Albedo = c.rgb;                
+                o.Albedo = _Color3;
             }
             
             if(IN.worldPos.y > _threshold4){
-             o.Albedo = _Color4; 
+                //fixed4 c = tex2D (_MainTex4, IN.uv_MainTex4);
+                //o.Albedo = c.rgb;  
+                o.Albedo = _Color4;          
             }
-
             // Metallic and smoothness come from slider variables
             o.Metallic = _Metallic;
             o.Smoothness = _Glossiness;

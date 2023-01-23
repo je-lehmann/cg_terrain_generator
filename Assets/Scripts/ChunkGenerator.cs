@@ -3,7 +3,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
+using UnityEngine.ProBuilder;
+using UnityEngine.ProBuilder.MeshOperations;
 
 [ExecuteInEditMode]
 public class ChunkGenerator : MonoBehaviour {
@@ -40,10 +41,9 @@ public class ChunkGenerator : MonoBehaviour {
     bool updatedParameters;
     bool calculatedDensity = false;
     private float y_Offset = 0;
+    public int[] lodModifiers = {3,4,6}; 
 
     // update helpers
-    private float nextActionTime = 0.0f;
-    public float period = 0.1f;
     // updated parameters in Editor lead to new mesh generation
     void OnValidate() {
         terrain = this.gameObject;
@@ -176,6 +176,7 @@ public class ChunkGenerator : MonoBehaviour {
         var vertices = new Vector3[numTriangles * 3];
         var meshTriangles = new int[numTriangles * 3];
 
+        Vector2[] uv = new Vector2[vertices.Length];
 
         for (int i = 0; i < numTriangles * 3; i += 3)
         {
@@ -184,12 +185,15 @@ public class ChunkGenerator : MonoBehaviour {
             meshTriangles[i + 2] = i + 2;
             vertices[i] = triangles[i / 3][0];
             vertices[i + 1] = triangles[i / 3][1];
-            vertices[i + 2] = triangles[i / 3][2];
+            vertices[i + 2] = triangles[i / 3][2];          
         }
         generatedMesh.vertices = vertices;
         generatedMesh.triangles = meshTriangles;
 
         generatedMesh.RecalculateNormals(); //replace by smooth normals later?
+
+        // Vector2[] generatedUVs = UnityEditor.Unwrapping.GeneratePerTriangleUV(generatedMesh);
+        // generatedMesh.uv = generatedUVs;
         
         //chunk.UpdateMesh(generatedMesh);
         //Debug.Log(generatedMesh);
