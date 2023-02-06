@@ -14,6 +14,7 @@ public class ChunkGenerator : MonoBehaviour {
     public Vector2Int cameraXZ;
     public bool camCentered = true;
     public int maxRenderedDistance = 20;
+    public int maxVisible = 5;
 
 
     [Header ("Voxel Params")]
@@ -39,7 +40,7 @@ public class ChunkGenerator : MonoBehaviour {
     ComputeBuffer triBuffer;
     ComputeBuffer vertBuffer;
     ComputeBuffer numBuffer;
-    const int threadGroupSize = 16;
+    const int threadGroupSize = 8;
     bool updatedParameters;
     bool calculatedDensity = false;
     private float y_Offset = 0;
@@ -53,7 +54,6 @@ public class ChunkGenerator : MonoBehaviour {
     void OnValidate() {
         terrain = this.gameObject;
         updatedParameters = true;
-      //  DelayedClearAllChunks();
         // Debug.Log("Compute Shaders supported? " + SystemInfo.supportsComputeShaders);
     }
     
@@ -135,41 +135,23 @@ public class ChunkGenerator : MonoBehaviour {
             return resolution;
         }
      void GenerateChunk(Vector2Int position) {
-        // Debug.Log("pos1" + position);
-        // dont generate chunk if it already exists
         int LOD = CalculateLOD(position);
         string chunkKey = "Chunk (" + position.x + "," + position.y + ")" + " LOD: " + LOD;
-        if (chunkDict.ContainsKey(chunkKey)) {
-            //Debug.Log("chunkKey already present!");
-            // check for distance and update LOD or visibility
-            //chunkDict[chunkKey].updateVisibility(cameraXZ);
-
-        } else {
+        // dont generate chunk if it already exists
+        if (!chunkDict.ContainsKey(chunkKey)) {
             Chunk newChunk;
             GameObject chunkObject = new GameObject(chunkKey);
-
-            // Debug.Log(chunkKey);
             chunkObject.transform.parent = terrain.transform;
             newChunk = chunkObject.AddComponent<Chunk>();
             newChunk.InitializeChunk(new Vector3(position.x, y_Offset, position.y), terrainMaterial, LOD);
             chunkDict.Add(chunkKey, newChunk);
-            
             // this is expensive
             UpdateMesh(newChunk);
         }
-       
-        // Debug.Log("NEW CHUNK" + newChunk.name);
-        // activeChunks.Add(position, newChunk);
-
-        // Debug current Dictionary Entries
-        // chunkDict.ToList().ForEach(x => Debug.Log(x));
     }
     void CameraChunkUpdate() {
-        
-        // calculate relevant vector grid
-        // convert the camera position to the xz grid position (compare to center)
-        // ClearAllChunks();
-
+        // this could be more performant: We iterate over thousands of chunks to compare the keys
+        // but choosing the right pos and lod is a little tricky...
         Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
         Vector3 cameraPlanePosition  =  -bounds / 2 + (Vector3) Camera.main.transform.localPosition / scale + Vector3.one / scale / 2;
         cameraPlanePosition.y = 0;
@@ -183,10 +165,12 @@ public class ChunkGenerator : MonoBehaviour {
             foreach (string key in chunkDict.Keys) {
                 Chunk c = chunkDict[key];
                 int LOD = CalculateLOD(c.localXZ);
-                if((Vector2Int.Distance(cameraXZ, c.localXZ)) >= maxRenderedDistance){
+                int distance = Mathf.FloorToInt(Vector2Int.Distance(cameraXZ, c.localXZ));
+                if(distance >= maxRenderedDistance){
                     c.Destroy();
-                } 
-                else if(Mathf.Floor(Vector2Int.Distance(cameraXZ, c.localXZ)) >= chunkXZ.x || c.chunkResolution != LOD){
+                } else if(distance >= (chunkXZ.x / 2) + maxVisible || c.chunkResolution != LOD){
+                    // we get corners because the distance is calculated different here than in the chunk creation, we could change this when theres time left
+                    //Debug.Log( c.name + " has DIST: "+ Mathf.Floor(Vector2Int.Distance(cameraXZ, c.localXZ)).ToString());
                     c.Hide();
                     newDict.Add(c.name,c);
                 } else {
@@ -195,16 +179,11 @@ public class ChunkGenerator : MonoBehaviour {
                 }
             }
             chunkDict = newDict;
-            Debug.Log("We have this many chunks: " + chunkDict.Count);
+           // Debug.Log("We have this many chunks: " + chunkDict.Count);
         }
-            
-        // disable unneeded chunks
-        // generate new chunks according to Chunk Buffer? 
     }
-    
+
     public void ClearAllChunks() {
-        
-        Debug.Log("clear all");
         int childCount = terrain.transform.childCount;
         for (int i = childCount - 1; i >= 0; i--) {
             Transform t = terrain.transform.GetChild(i);
@@ -214,15 +193,10 @@ public class ChunkGenerator : MonoBehaviour {
     }
 
     public void UpdateMesh (Chunk chunk) {
-        
         //estimate center so we can propagate noise along multiple chunks
         Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
         Vector3 center =  -bounds / 2 + (Vector3) chunk.localCoords * scale + Vector3.one * scale / 2;
-        // Debug.Log("CENTER" + center);
-
-        // generate noisy density values
         center.y = 0; // whyyyy we need this... It should 0 despite center scaling
-
         int numThreads = threadGroupSize;
         chunk.GenerateLODMesh(vertBuffer, triBuffer, cameraXZ, densityFunction, scale, center, isoLevel, numThreads, marchingCubes);
        
@@ -231,9 +205,7 @@ public class ChunkGenerator : MonoBehaviour {
         int[] triCountArray = new int[numBuffer.count];
         numBuffer.GetData (triCountArray);
         int numTriangles = triCountArray[0];
-
-       // Debug.Log(triCountArray[0] + " triangles were generated");
-
+        // Debug.Log(triCountArray[0] + " triangles were generated");
         // Get triangle data from shader
         Triangle[] triangles = new Triangle[numTriangles];
         triBuffer.GetData (triangles, 0, 0, numTriangles);
