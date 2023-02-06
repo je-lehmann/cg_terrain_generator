@@ -6,7 +6,7 @@
 #include "NoiseLibrary.compute"
 #include "perlin.compute"
 
-//static const int numThreads = 64; // overwrite this? 
+static const int numThreads = 8; // overwrite this? 
 //for GTX 1650 the maxThreads is 12800, but Unity only allows 1024 :(
 RWStructuredBuffer<float4> verts;
 StructuredBuffer<float3> offsets;
@@ -27,7 +27,7 @@ float octaveSixAmplitude;
 float baseFrequency;
 
 
-[numthreads(8,8,8)]
+[numthreads(numThreads,numThreads,numThreads)]
 void DensityFunction (int3 id : SV_DispatchThreadID){
     
     if (id.x >= resolution || id.y >= resolution || id.z >= resolution) {

@@ -5,8 +5,6 @@
 #pragma kernel MarchingCubes
 #include "LUT.compute"
 
-// static const int numThreads = 64; // is this a good choice?
-
 struct Triangle {
     float3 vert_a;
     float3 vert_b;
@@ -18,6 +16,7 @@ RWStructuredBuffer<float4> vertices;
 
 int vertsPerAxis;
 float isoLevel;
+static const int numThreads = 8; // overwrite this? 
 
 // https://forum.unity.com/threads/not-set-to-an-instance-of-an-object.759701/
 float3 interpolateVerts(float4 vert_a, float4 vert_b) {
@@ -25,7 +24,7 @@ float3 interpolateVerts(float4 vert_a, float4 vert_b) {
     return vert_a.xyz + t * (vert_b.xyz - vert_a.xyz);
 }
 
-[numthreads(8,8,8)]
+[numthreads(numThreads,numThreads,numThreads)]
 void MarchingCubes (int3 id : SV_DispatchThreadID)
 {   
     // stop 1 before because voxel includes adjecent points

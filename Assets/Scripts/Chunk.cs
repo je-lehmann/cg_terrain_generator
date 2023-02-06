@@ -6,83 +6,49 @@ using UnityEngine;
 
 public class Chunk : MonoBehaviour {
     public Vector3 localCoords;
+    public Vector2Int localXZ;
     public Material material;
     public MeshFilter meshFilter;
     public MeshRenderer meshRenderer;
     private bool updatedParameters;
     public Mesh mesh;
-    public Vector3 worldCoords;
-    
-    [Range (2, 64)] //depends on number of threads per chunk//
-    private int[] LODLevels = new int[4]; // this will be our resolution or LOD later on
-  
-    public void InitializeChunk(Vector3 position, Material mat){
-       int maxLOD = gameObject.GetComponentInParent<ChunkGenerator>().maxResolution;
-       int[] lodModifiers = gameObject.GetComponentInParent<ChunkGenerator>().lodModifiers;
-
-       LODLevels[3] = maxLOD;
-       LODLevels[2] = maxLOD / lodModifiers[0];
-       LODLevels[1] = maxLOD / lodModifiers[1];
-       LODLevels[0] = maxLOD / lodModifiers[2];
+    public Vector3 worldCoords;    
+    public int chunkResolution; // this will be our resolution or LOD later on
+    public void Destroy () {
+       // Debug.Log("Bye" + gameObject.name);
+        DestroyImmediate (gameObject, false);    
+    }
+    public void Hide () {
+        meshRenderer.enabled = false;
+    }
+    public void Show () {
+        meshRenderer.enabled = true;
+    }
+    public void InitializeChunk(Vector3 position, Material mat, int LOD){
        if (meshFilter == null) {
             meshFilter = gameObject.AddComponent<MeshFilter> ();
         }
+
         if (meshRenderer == null) {
             meshRenderer = gameObject.AddComponent<MeshRenderer> ();
         }
+
         if (mesh == null) {
             mesh = new Mesh ();
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         }
-        // Debug.Log("pos2" + coords);
+
         localCoords = position;
+        localXZ = new Vector2Int((int)localCoords.x, (int)localCoords.z);
         meshRenderer.material = mat;        
         meshFilter.sharedMesh = mesh;
-        // m_filter.sharedMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+        chunkResolution = LOD;
     }
     public void UpdateMesh(Mesh mesh) {
         meshFilter.sharedMesh = mesh;
         worldCoords = gameObject.transform.position;
     }
-
-    public void updateVisibility(Vector2Int cameraXZ, int maxDistance) {
-        Vector2Int localXZ = new Vector2Int((int)localCoords.x, (int)localCoords.z);
-        int[] lodModifiers = gameObject.GetComponentInParent<ChunkGenerator>().lodModifiers;
-        
-       /* if(Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) > maxDistance + 5) {
-            // destroy!
-            Debug.Log("destroy " + this);
-            gameObject.GetComponentInParent<ChunkGenerator>().ClearChunk(this);
-        }: */
-
-        if(Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) > maxDistance){
-            meshRenderer.enabled = false;
-        } else {
-            meshRenderer.enabled = true;
-        }
-    }
-
     public void GenerateLODMesh(ComputeBuffer vertBuffer, ComputeBuffer triBuffer, Vector2Int cameraXZ, DensityFunction func, float scale, Vector3 center, float isoLevel, int numThreads, ComputeShader shader) {
-        int chunkResolution;
-        Vector2Int localXZ = new Vector2Int((int)localCoords.x, (int)localCoords.z);
-
-       // Debug.Log("DIST " + Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)) + " for " + name);
-        switch (Mathf.Floor(Vector2Int.Distance(cameraXZ,localXZ)))
-        {
-            case 0:
-                chunkResolution =  LODLevels[3]; 
-                break;
-            case 1:
-                chunkResolution =  LODLevels[2]; 
-                break;
-            case 2:
-                chunkResolution =  LODLevels[1]; 
-                break;
-            default:
-                chunkResolution =  LODLevels[0];
-                break;
-        }
-
         func.Generate (vertBuffer, chunkResolution, scale, center);
         triBuffer.SetCounterValue (0); // resets number of elements in the buffer to 0
         int kernelHandle = shader.FindKernel("MarchingCubes");

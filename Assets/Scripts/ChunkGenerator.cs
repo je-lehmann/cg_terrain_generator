@@ -13,7 +13,8 @@ public class ChunkGenerator : MonoBehaviour {
     public DensityFunction densityFunction;
     public Vector2Int cameraXZ;
     public bool camCentered = true;
-    public int maxDistance = 10;
+    public int maxRenderedDistance = 20;
+
 
     [Header ("Voxel Params")]
     
@@ -25,7 +26,6 @@ public class ChunkGenerator : MonoBehaviour {
     [Range (0f, 200f)]
     public float scale = 1f; // we need that later on
     // Chunk Helpers
-    public List<Chunk> chunkList = new List<Chunk>();
     // Chunk dictionary should replace the old chunk list
     Dictionary<string, Chunk> chunkDict = new Dictionary<string, Chunk>();
    
@@ -39,11 +39,13 @@ public class ChunkGenerator : MonoBehaviour {
     ComputeBuffer triBuffer;
     ComputeBuffer vertBuffer;
     ComputeBuffer numBuffer;
-    const int threadGroupSize = 8;
+    const int threadGroupSize = 16;
     bool updatedParameters;
     bool calculatedDensity = false;
     private float y_Offset = 0;
-    public int[] lodModifiers = {3,4,6,9}; 
+    public int[] lodModifiers;
+    public bool printChunks = false;
+
 
     // update helpers
     // updated parameters in Editor lead to new mesh generation.
@@ -56,6 +58,14 @@ public class ChunkGenerator : MonoBehaviour {
     }
     
     void Update() {
+        
+        if(printChunks){
+            printChunks = false;
+            foreach (string key in chunkDict.Keys.ToList()) {
+                Chunk c = chunkDict[key];
+                Debug.Log("Chunk Print: " + c.transform.gameObject.name);    
+            }            
+        }
 
         if (updatedParameters) {
             updatedParameters = false; 
@@ -109,11 +119,26 @@ public class ChunkGenerator : MonoBehaviour {
         vertBuffer = new ComputeBuffer (numPoints, sizeof (float) * 4);
         numBuffer = new ComputeBuffer (1, sizeof (int), ComputeBufferType.Raw);
     }
-
+        private int CalculateLOD(Vector2Int chunkPosition) {
+            int resolution;
+            int distance = Mathf.FloorToInt(Vector2Int.Distance(cameraXZ, chunkPosition));
+            if(distance <= 1) {
+                resolution =  maxResolution; 
+            } else if (distance == 2){
+                resolution =  maxResolution / lodModifiers[0]; 
+            } else if (distance == 3){
+                resolution =  maxResolution / lodModifiers[1]; 
+            } else {
+                resolution =  maxResolution / lodModifiers[2]; 
+            }
+                       
+            return resolution;
+        }
      void GenerateChunk(Vector2Int position) {
         // Debug.Log("pos1" + position);
         // dont generate chunk if it already exists
-        string chunkKey = "Chunk (" + position.x + "," + position.y + ")";
+        int LOD = CalculateLOD(position);
+        string chunkKey = "Chunk (" + position.x + "," + position.y + ")" + " LOD: " + LOD;
         if (chunkDict.ContainsKey(chunkKey)) {
             //Debug.Log("chunkKey already present!");
             // check for distance and update LOD or visibility
@@ -126,7 +151,7 @@ public class ChunkGenerator : MonoBehaviour {
             // Debug.Log(chunkKey);
             chunkObject.transform.parent = terrain.transform;
             newChunk = chunkObject.AddComponent<Chunk>();
-            newChunk.InitializeChunk(new Vector3(position.x, y_Offset, position.y), terrainMaterial);
+            newChunk.InitializeChunk(new Vector3(position.x, y_Offset, position.y), terrainMaterial, LOD);
             chunkDict.Add(chunkKey, newChunk);
             
             // this is expensive
@@ -153,12 +178,24 @@ public class ChunkGenerator : MonoBehaviour {
         Vector2Int newCameraXZ = new Vector2Int((int)Mathf.Round(cameraPlanePosition.x) + (int)(Mathf.Round(chunkXZ.x)/2), (int)Mathf.Round(cameraPlanePosition.z) + (int)(Mathf.Round(chunkXZ.x)/2));
         if(newCameraXZ != currentCameraXZ){
             cameraXZ = newCameraXZ;
-            //Debug.Log("CHUNK CAMERA UPDATE");
             UpdateTerrain();
+            Dictionary<string, Chunk> newDict = new Dictionary<string, Chunk>();            
             foreach (string key in chunkDict.Keys) {
                 Chunk c = chunkDict[key];
-                c.updateVisibility(cameraXZ, maxDistance);
+                int LOD = CalculateLOD(c.localXZ);
+                if((Vector2Int.Distance(cameraXZ, c.localXZ)) >= maxRenderedDistance){
+                    c.Destroy();
+                } 
+                else if(Mathf.Floor(Vector2Int.Distance(cameraXZ, c.localXZ)) >= chunkXZ.x || c.chunkResolution != LOD){
+                    c.Hide();
+                    newDict.Add(c.name,c);
+                } else {
+                    c.Show();
+                    newDict.Add(c.name,c);
+                }
             }
+            chunkDict = newDict;
+            Debug.Log("We have this many chunks: " + chunkDict.Count);
         }
             
         // disable unneeded chunks
@@ -166,48 +203,14 @@ public class ChunkGenerator : MonoBehaviour {
     }
     
     public void ClearAllChunks() {
-        // delete unneeded chunks
-        Debug.Log("cLEAR all chunks");
-        if(chunkDict.Count != 0) {
-            foreach (string key in chunkDict.Keys) {
-                // Get the Chunk associated with the current key
-                //Debug.Log(key);
-                Chunk c = chunkDict[key];
-                // Destroy the GameObject
-                Debug.Log(c.transform.gameObject.name);
-                DestroyImmediate(c.transform.gameObject);
-            }
-            
-            chunkDict.Clear();
-            
-            foreach(Transform child in terrain.transform) {
-                Debug.Log(child.gameObject.name);
-                DestroyImmediate(child.gameObject);
-            }
-        }
-    }
-
-    private void DelayedClearAllChunks() {
-        // delete unneeded chunks
-        UnityEditor.EditorApplication.delayCall+=()=>
-        {
-            if(chunkDict.Count != 0) {
-                foreach (string key in chunkDict.Keys) {
-                    // Get the Chunk associated with the current key
-                    //Debug.Log(key);
-                    Chunk c = chunkDict[key];
-                    // Destroy the GameObject
-                    DestroyImmediate(c.transform.gameObject);
-                }
-            chunkDict.Clear();
-            }
-        };
         
-    }
-
-    public void ClearChunk(Chunk doomedChunk) {
-        chunkDict.Remove(doomedChunk.name);
-        DestroyImmediate(doomedChunk.transform.gameObject);
+        Debug.Log("clear all");
+        int childCount = terrain.transform.childCount;
+        for (int i = childCount - 1; i >= 0; i--) {
+            Transform t = terrain.transform.GetChild(i);
+            DestroyImmediate(t.gameObject);
+        }
+        chunkDict.Clear();
     }
 
     public void UpdateMesh (Chunk chunk) {
@@ -220,7 +223,7 @@ public class ChunkGenerator : MonoBehaviour {
         // generate noisy density values
         center.y = 0; // whyyyy we need this... It should 0 despite center scaling
 
-        int numThreads = 8;
+        int numThreads = threadGroupSize;
         chunk.GenerateLODMesh(vertBuffer, triBuffer, cameraXZ, densityFunction, scale, center, isoLevel, numThreads, marchingCubes);
        
         // Get number of triangles in the triangle buffer
