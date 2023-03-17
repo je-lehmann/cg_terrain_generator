@@ -11,31 +11,35 @@ public class ChunkGenerator : MonoBehaviour {
     public Material terrainMaterial;
     public ComputeShader marchingCubes;
     public DensityFunction densityFunction;
-    public Vector2Int cameraXZ;
-    public bool camCentered = true;
-    public int maxRenderedDistance = 20;
-    public int maxVisible = 5;
-
-
-    [Header ("Voxel Params")]
     
-    // Changed Ranges for better visability
+    [HideInInspector]
+    public Vector2Int cameraXZ;
+    
+    [Header ("Render terrain in front or around camera")]
+    public bool camCentered = true;
+    
+    [Header ("Distance for hiding chunks but keeping the mesh")]
+    [Range (1, 100)]
+    public int hideDistance = 20;
+    
+    [Header ("Distance for destroying chunks")]
+    [Range (1, 100)]
+    public int destroyDistance = 5;
+
+    [Header ("Marching Cubes isovalue")]
     [Range (-100f, 100f)]
     public float isoLevel = 0.0f; 
-    public int seed;
-
-    [Range (0f, 200f)]
-    public float scale = 1f; // we need that later on
+    private  float scale = 160f; // we need that later on
     // Chunk Helpers
     // Chunk dictionary should replace the old chunk list
     Dictionary<string, Chunk> chunkDict = new Dictionary<string, Chunk>();
    
-    [Header("at least 4x4 for LOD")]
+    [Header("Determine how many chunks initially are rendered")]
     public Vector2Int chunkXZ;
-    
-    [Range (32, 64)] //depends on number of threads per chunk
+    [Header("Define maximum Chunk Resolution")]
+    [Range (2, 229)] //depends on number of threads per chunk
     public int maxResolution = 60; // this will be our resolution or LOD later on    
-    
+
     // Buffers
     ComputeBuffer triBuffer;
     ComputeBuffer vertBuffer;
@@ -44,12 +48,10 @@ public class ChunkGenerator : MonoBehaviour {
     bool updatedParameters;
     bool calculatedDensity = false;
     private float y_Offset = 0;
+    [Header("Define custom LOD Falloff that devides resolution in three distance steps")]
     public int[] lodModifiers;
-    public bool printChunks = false;
-
-
-    // update helpers
-    // updated parameters in Editor lead to new mesh generation.
+    //only used for debugging 
+    private bool printChunks = false;
 
     void OnValidate() {
         terrain = this.gameObject;
@@ -70,7 +72,7 @@ public class ChunkGenerator : MonoBehaviour {
         if (updatedParameters) {
             updatedParameters = false; 
             ClearAllChunks();
-            UpdateTerrain(); // UNCOMMENT ME
+            UpdateTerrain(); 
         }
         // on variable change: XZ camera position
         if (Camera.main.transform.hasChanged) {
@@ -166,9 +168,9 @@ public class ChunkGenerator : MonoBehaviour {
                 Chunk c = chunkDict[key];
                 int LOD = CalculateLOD(c.localXZ);
                 int distance = Mathf.FloorToInt(Vector2Int.Distance(cameraXZ, c.localXZ));
-                if(distance >= maxRenderedDistance){
+                if(distance >= destroyDistance){
                     c.Destroy();
-                } else if(distance >= (chunkXZ.x / 2) + maxVisible || c.chunkResolution != LOD){
+                } else if(distance >=  hideDistance || c.chunkResolution != LOD){
                     // we get corners because the distance is calculated different here than in the chunk creation, we could change this when theres time left
                     //Debug.Log( c.name + " has DIST: "+ Mathf.Floor(Vector2Int.Distance(cameraXZ, c.localXZ)).ToString());
                     c.Hide();
@@ -194,11 +196,12 @@ public class ChunkGenerator : MonoBehaviour {
 
     public void UpdateMesh (Chunk chunk) {
         //estimate center so we can propagate noise along multiple chunks
+        int numVoxelsPerAxis = chunk.chunkResolution - 1;
         Vector3 bounds = new Vector3(chunkXZ.x, y_Offset, chunkXZ.y);
         Vector3 center =  -bounds / 2 + (Vector3) chunk.localCoords * scale + Vector3.one * scale / 2;
         center.y = 0; // whyyyy we need this... It should 0 despite center scaling
-        int numThreads = threadGroupSize;
-        chunk.GenerateLODMesh(vertBuffer, triBuffer, cameraXZ, densityFunction, scale, center, isoLevel, numThreads, marchingCubes);
+        int numThreadsPerAxis = Mathf.CeilToInt (numVoxelsPerAxis / (float) threadGroupSize);
+        chunk.GenerateLODMesh(vertBuffer, triBuffer, cameraXZ, densityFunction, scale, center, isoLevel, numThreadsPerAxis, marchingCubes);
        
         // Get number of triangles in the triangle buffer
         ComputeBuffer.CopyCount (triBuffer, numBuffer, 0);

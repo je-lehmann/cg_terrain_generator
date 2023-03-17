@@ -54,6 +54,8 @@ public class DensityFunction : MonoBehaviour
         int num_points = resolution * resolution * resolution;
         // fill up the point buffer in compute shader now
         // set parameters, add more params later
+        int numThreadsPerAxis = Mathf.CeilToInt (resolution / (float) threadGroupSize);
+
         densityFunction.SetBuffer(0, "verts", vertBuffer);
         densityFunction.SetVector("center", center);
         densityFunction.SetInt("resolution", resolution);
@@ -68,7 +70,7 @@ public class DensityFunction : MonoBehaviour
         densityFunction.SetFloat("octaveFiveAmplitude", octaveFiveAmplitude);
         densityFunction.SetFloat("octaveSixAmplitude", octaveSixAmplitude);
 
-        densityFunction.Dispatch(0, 8, 8, 8); // is that correct?
+        densityFunction.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis); // is that correct?
 
         return vertBuffer;
     }

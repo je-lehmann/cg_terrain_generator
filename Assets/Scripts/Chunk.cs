@@ -56,6 +56,6 @@ public class Chunk : MonoBehaviour {
         shader.SetBuffer (kernelHandle, "triangles", triBuffer);
         shader.SetInt ("vertsPerAxis", chunkResolution);
         shader.SetFloat ("isoLevel", isoLevel);
-        shader.Dispatch (0, 8, 8, 8); //num Threads.... how many are needed???
+        shader.Dispatch (0, numThreads, numThreads, numThreads); //num Threads.... how many are needed???
     }
 }
